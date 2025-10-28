@@ -1,0 +1,6 @@
+pandas
+numpy
+Faker
+PyYAML
+tqdm
+python-dateutil

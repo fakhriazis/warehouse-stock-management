@@ -1,0 +1,16 @@
+seed: 123
+start_date: '2024-01-01'
+end_date: '2025-10-01'
+warehouses: 10
+products: 5000
+categories: 50
+suppliers: 200
+stock_records: 100000
+stock_movements: 500000
+purchase_orders: 100000
+sales_orders: 200000
+dq_rate: 0.05
+output_dir: 'output'
+seasonal_categories_pct: 0.2
+pareto_p: 0.2
+chunk_size: 50000
