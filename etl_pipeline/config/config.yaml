@@ -1,0 +1,72 @@
+# Example configuration for the ETL analytics pipeline
+run:
+  mode: "csv"            # "csv" or "database"
+  watermark_state: "./state/last_run.json"
+  output_dir: "./_output"
+  report_dir: "./_reports"
+  chunk_size: 250000      # for CSV streaming and DB fetchmany
+  timezone: "Asia/Jakarta"
+
+sources:
+  csv:
+    base_path: "../data_generator/output"  
+    files:
+      products: "products.csv"
+      warehouses: "warehouses.csv"
+      stock: "stock.csv"                   # current stock snapshot with last_update
+      movements: "stock_movements.csv"     # historical movements with movement_time
+      purchases: "purchase_orders.csv"
+      purchase_lines: "purchase_order_lines.csv"
+      
+
+  database:
+    url: "postgresql+psycopg2://admin:admin123@localhost:5433/stock_management"
+    tables:
+      products: "products"
+      warehouses: "warehouses"
+      stock: "stock"
+      movements: "stock_movements"
+      purchases: "purchase_orders"
+      purchase_lines: "purchase_order_lines"
+      
+
+data_quality:
+  drop_duplicates: true
+  # fill_na strategy can be per-column; "mean", "median", "mode", or a concrete value
+  fill_na:
+    unit_cost: 0.0
+    category_id: "UNKNOWN"
+  # enforce basic schema types (very lightweight validation)
+  dtypes:
+    products:
+      product_id: "string"
+      category_id: "string"
+    warehouses:
+      warehouse_id: "string"
+      capacity: "float64"  # optional, for utilization
+  # rows to exclude if these columns are null
+  not_null:
+    - product_id
+
+business_rules:
+  holding_cost_rate_annual: 0.18  # 18% annual carrying cost
+  stockout_cost_per_unit: 5.0     # rough estimate, adapt to your business
+  dead_stock_days: 180
+
+metrics:
+  # seasonal/trend windows
+  resample:
+    daily: "D"
+    weekly: "W"
+    monthly: "MS"
+
+targets:
+  export:
+    format: ["parquet", "csv"]
+    path: "./_analytics_exports"
+  database:
+    enabled: false
+    url: "postgresql+psycopg2://admin:admin123@localhost:5433/analytics"
+    schema: "public"
+    # uncomment if you want to create materialized views (Postgres)
+    materialized_views: true
