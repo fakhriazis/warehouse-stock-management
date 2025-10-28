@@ -1,53 +1,53 @@
 import logging
-from typing import Dict, Any
 import pandas as pd
 
 logger = logging.getLogger(__name__)
 
 class MovementAnalytics:
     """
-    - Average daily movement per product
-    - Peak periods identification
-    - Movement trends (daily, weekly, monthly)
-    - Seasonal patterns (simple decomposition via resampling summaries)
+    Modul untuk menghitung analitik pergerakan stok:
+    - Rata-rata harian per produk
+    - Periode puncak
+    - Tren harian/mingguan/bulanan
+    - Pola musiman
     """
-    def __init__(self, config: Dict[str, Any]):
+    def __init__(self, config):
         self.config = config
-        self.freqs = config["metrics"]["resample"]
+        self.mov_ts = config["columns_mapping"]["movements"]["timestamp"]
 
-    def compute(self, dfs: Dict[str, pd.DataFrame]) -> Dict[str, pd.DataFrame]:
+    def compute(self, dfs: dict) -> dict:
         outputs = {}
         movements = dfs.get("movements", pd.DataFrame()).copy()
-        if movements.empty:
+        if movements.empty or self.mov_ts not in movements.columns:
             return outputs
 
-        movements["movement_time"] = pd.to_datetime(movements["movement_time"])
+        movements[self.mov_ts] = pd.to_datetime(movements[self.mov_ts])
         movements["quantity_signed"] = movements.apply(
             lambda r: -abs(r["quantity"]) if str(r["movement_type"]).upper() in ("OUT","SALE","TRANSFER_OUT") else abs(r["quantity"]),
             axis=1
         )
-        movements["date"] = movements["movement_time"].dt.date
+        movements["date"] = movements[self.mov_ts].dt.date
 
-        # Average daily movement per product
+        # Rata-rata harian per produk
         daily = movements.groupby(["product_id","date"], as_index=False)["quantity_signed"].sum()
         avg_daily = daily.groupby("product_id", as_index=False)["quantity_signed"].mean().rename(columns={"quantity_signed":"avg_daily_qty"})
         outputs["avg_daily_movement_product"] = avg_daily
 
-        # Peak periods per product (top 5 absolute movement days)
+        # Periode puncak
         peak = daily.copy()
         peak["abs_qty"] = peak["quantity_signed"].abs()
         peak = peak.sort_values(["product_id","abs_qty"], ascending=[True, False]).groupby("product_id").head(5)
         outputs["peak_periods_product"] = peak
 
-        # Trends by resample at multiple granularities
-        ts = movements.set_index("movement_time").sort_index()
-        for label, rule in self.freqs.items():
+        # Tren resampling
+        ts = movements.set_index(self.mov_ts).sort_index()
+        for label, rule in self.config["metrics"]["resample"].items():
             agg = ts["quantity_signed"].resample(rule).sum().reset_index().rename(columns={"quantity_signed":f"qty_{label}"})
             outputs[f"movement_trend_{label}"] = agg
 
-        # Seasonal pattern hint: monthly average by month number
+        # Pola musiman (rerata per bulan)
         monthly = ts["quantity_signed"].resample("MS").sum()
-        by_month = monthly.groupby(monthly.index.month).mean().reset_index().rename(columns={"index":"month", "quantity_signed":"avg_qty"})
+        by_month = monthly.groupby(monthly.index.month).mean().reset_index()
         by_month.columns = ["month","avg_qty"]
         outputs["seasonality_monthly_avg"] = by_month
 

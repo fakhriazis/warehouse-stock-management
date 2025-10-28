@@ -72,7 +72,7 @@ Outputs will appear under:
 - **stock**: snapshot with `product_id`, `warehouse_id`, `quantity`, `last_update`, optional `unit_cost`.
 - **products**: `product_id`, optional `category_id`, optional `unit_cost`.
 - **warehouses**: `warehouse_id`, optional `capacity`, optional `region`.
-- **physical_counts**: `warehouse_id`, `product_id`, `quantity` as `quantity_physical`, `count_time`.
+
 
 > Tip: rename columns to match these if your source schema differs (or extend the code to map columns).
 
