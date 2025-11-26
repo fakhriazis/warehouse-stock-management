@@ -117,14 +117,5 @@ ORDER BY 1 DESC, movement_type;
 
 ```
 
----
-
-## 7. Catatan Pengembangan Lanjutan
-- Bisa ditambahkan tabel `audit_logs` untuk mencatat setiap aksi user (CREATE/UPDATE/DELETE).
-- Untuk analitik lanjutan, dapat dikembangkan ke **Star Schema** dengan `fact_stock_movements` dan beberapa `dimension` seperti `dim_product`, `dim_supplier`, `dim_warehouse`, dll.
-- Pipeline ETL bisa diatur menggunakan Airflow untuk pemrosesan otomatis ke data mart.
-
----
-
 **Dibuat oleh:**  
 Fakhri Azis Basiri 
