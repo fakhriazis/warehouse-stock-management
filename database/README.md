@@ -70,29 +70,51 @@ Relasi utamanya:
 ## 6. Contoh Query Analitik
 ### a. Daftar produk yang perlu restock
 ```sql
-SELECT p.product_name, w.warehouse_name, s.current_stock, s.reorder_point
+SELECT
+  p.product_id,
+  p.product_name,
+  s.warehouse_id,
+  w.warehouse_name,
+  s.quantity AS current_stock,
+  p.reorder_point
 FROM stock s
 JOIN products p ON s.product_id = p.product_id
 JOIN warehouses w ON s.warehouse_id = w.warehouse_id
-WHERE s.current_stock <= s.reorder_point;
+WHERE s.quantity <= COALESCE(p.reorder_point, 0)
+ORDER BY w.warehouse_name, p.product_name;
 ```
 
 ### b. Riwayat transfer antar gudang
 ```sql
-SELECT sm.movement_id, p.product_name, sw.warehouse_name AS source, dw.warehouse_name AS destination, sm.quantity, sm.movement_date
+SELECT
+  sm.movement_id,
+  sm.movement_date,
+  p.product_id,
+  p.product_name,
+  fw.warehouse_id   AS from_warehouse_id,
+  fw.warehouse_name AS from_warehouse_name,
+  tw.warehouse_id   AS to_warehouse_id,
+  tw.warehouse_name AS to_warehouse_name,
+  sm.quantity,
+  sm.remarks
 FROM stock_movements sm
 JOIN products p ON sm.product_id = p.product_id
-LEFT JOIN warehouses sw ON sm.source_warehouse_id = sw.warehouse_id
-LEFT JOIN warehouses dw ON sm.destination_warehouse_id = dw.warehouse_id
-WHERE sm.movement_type = 'TRANSFER';
+LEFT JOIN warehouses fw ON sm.from_warehouse_id = fw.warehouse_id
+LEFT JOIN warehouses tw ON sm.to_warehouse_id   = tw.warehouse_id
+WHERE sm.movement_type = 'TRANSFER'
+ORDER BY sm.movement_date DESC, sm.movement_id;
 ```
 
 ### c. Total pergerakan stok per bulan
 ```sql
-SELECT DATE_TRUNC('month', movement_date) AS bulan, movement_type, SUM(quantity) AS total_qty
+SELECT
+  DATE_TRUNC('month', movement_date) AS month,
+  movement_type,
+  SUM(quantity) AS total_qty
 FROM stock_movements
 GROUP BY 1, 2
-ORDER BY 1 DESC;
+ORDER BY 1 DESC, movement_type;
+
 ```
 
 ---
